@@ -1202,7 +1202,7 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
       }
     }
   };
-  // BeHappy: only use configured MTProto port
+  // BeHappy: only use configured MTProto port (10443)
   vector<int> ports = {10443};
 #if TD_EMSCRIPTEN
   if (is_test) {
@@ -1221,8 +1221,6 @@ DcOptions ConnectionCreator::get_default_dc_options(bool is_test) {
     add_ip_ports(3, {"144.31.238.115"}, ports);
     add_ip_ports(4, {"144.31.238.115"}, ports);
     add_ip_ports(5, {"144.31.238.115"}, ports);
-
-    // BeHappy: no IPv6
   }
 #endif
   return res;

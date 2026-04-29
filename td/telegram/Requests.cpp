@@ -120,6 +120,7 @@
 #include "td/telegram/PasswordManager.h"
 #include "td/telegram/Payments.h"
 #include "td/telegram/PhoneNumberManager.h"
+#include "td/telegram/PollManager.h"
 #include "td/telegram/Premium.h"
 #include "td/telegram/PrivacyManager.h"
 #include "td/telegram/PublicDialogType.h"
@@ -588,15 +589,15 @@ class GetRepliedMessageRequest final : public RequestOnceActor {
   DialogId dialog_id_;
   MessageId message_id_;
 
-  MessageFullId replied_message_id_;
+  MessageFullId replied_message_full_id_;
 
   void do_run(Promise<Unit> &&promise) final {
-    replied_message_id_ =
+    replied_message_full_id_ =
         td_->messages_manager_->get_replied_message(dialog_id_, message_id_, get_tries() < 3, std::move(promise));
   }
 
   void do_send_result() final {
-    send_result(td_->messages_manager_->get_message_object(replied_message_id_, "GetRepliedMessageRequest"));
+    send_result(td_->messages_manager_->get_message_object(replied_message_full_id_, "GetRepliedMessageRequest"));
   }
 
  public:
@@ -7780,35 +7781,35 @@ void Requests::on_request(uint64 id, td_api::setOption &request) {
 void Requests::on_request(uint64 id, td_api::addPollOption &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->add_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          std::move(request.option_), std::move(promise));
+  td_->poll_manager_->add_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                      std::move(request.option_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::deletePollOption &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->delete_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                             request.option_id_, std::move(promise));
+  td_->poll_manager_->delete_poll_option({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                         request.option_id_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::setPollAnswer &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->set_poll_answer({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          std::move(request.option_ids_), std::move(promise));
+  td_->poll_manager_->set_poll_answer({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                      std::move(request.option_ids_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::getPollVoters &request) {
   CHECK_IS_USER();
   CREATE_REQUEST_PROMISE();
-  td_->messages_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                          request.option_id_, request.offset_, request.limit_, std::move(promise));
+  td_->poll_manager_->get_poll_voters({DialogId(request.chat_id_), MessageId(request.message_id_)}, request.option_id_,
+                                      request.offset_, request.limit_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::stopPoll &request) {
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
-                                    std::move(request.reply_markup_), std::move(promise));
+  td_->poll_manager_->stop_poll({DialogId(request.chat_id_), MessageId(request.message_id_)},
+                                std::move(request.reply_markup_), std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::addChecklistTasks &request) {
@@ -7865,16 +7866,16 @@ void Requests::on_request(uint64 id, const td_api::shareUsersWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
   auto dialog_ids = DialogId::get_dialog_ids(UserId::get_user_ids(request.shared_user_ids_));
-  td_->messages_manager_->share_dialogs_with_bot(request.source_, request.button_id_, std::move(dialog_ids), true,
-                                                 request.only_check_, std::move(promise));
+  td_->message_query_manager_->share_dialogs_with_bot(request.source_, request.button_id_, std::move(dialog_ids), true,
+                                                      request.only_check_, std::move(promise));
 }
 
 void Requests::on_request(uint64 id, const td_api::shareChatWithBot &request) {
   CHECK_IS_USER();
   CREATE_OK_REQUEST_PROMISE();
-  td_->messages_manager_->share_dialogs_with_bot(request.source_, request.button_id_,
-                                                 {DialogId(request.shared_chat_id_)}, false, request.only_check_,
-                                                 std::move(promise));
+  td_->message_query_manager_->share_dialogs_with_bot(request.source_, request.button_id_,
+                                                      {DialogId(request.shared_chat_id_)}, false, request.only_check_,
+                                                      std::move(promise));
 }
 
 void Requests::on_request(uint64 id, td_api::getInlineQueryResults &request) {
